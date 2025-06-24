@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025年中考成绩查询系统</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a5276;
+            margin-bottom: 30px;
+        }
+        .query-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .captcha-container {
+            display: flex;
+            align-items: center;
+        }
+        .captcha-container input {
+            width: 150px;
+            margin-right: 10px;
+        }
+        .captcha-img {
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            user-select: none;
+            cursor: pointer;
+        }
+        button {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #3498db;
+        }
+        .result {
+            display: none;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #eaf2f8;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>2025年中考成绩查询系统</h1>
+        
+        <div class="query-form">
+            <div class="form-group">
+                <label for="name">姓名</label>
+                <input type="text" id="name" placeholder="请输入考生姓名">
+            </div>
+            
+            <div class="form-group">
+                <label for="examId">准考证号</label>
+                <input type="text" id="examId" placeholder="请输入准考证号">
+            </div>
+            
+            <div class="form-group">
+                <label for="captcha">验证码</label>
+                <div class="captcha-container">
+                    <input type="text" id="captcha" placeholder="请输入验证码">
+                    <div class="captcha-img" id="captchaImg" onclick="generateCaptcha()">3A7B</div>
+                </div>
+            </div>
+            
+            <button onclick="queryScore()">查询成绩</button>
+            <div class="error" id="errorMsg">请输入正确的信息！</div>
+        </div>
+        
+        <div class="result" id="result">
+            <h2>成绩详情</h2>
+            <div id="studentInfo"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>科目</th>
+                        <th>成绩</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreTable">
+                    <!-- 成绩将通过JavaScript动态填充 -->
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td>总分</td>
+                        <td id="totalScore">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 市教育局 版权所有</p>
+            <p>技术支持：教育信息中心</p>
+        </div>
+    </div>
+
+    <script>
+        // 学生数据
+        const students = [
+            {
+                name: "唐启超",
+                examId: "25905016428",
+                scores: {
+                    "语文": 120,
+                    "数学": 120,
+                    "英语": 100,
+                    "道德与法治": 60,
+                    "历史": 60,
+                    "物理": 70,
+                    "化学": 50,
+                    "生物": 40,
+                    "地理": 40,
+                    "体育": 40
+                }
+            },
+            {
+                name: "金若晨",
+                examId: "25905010621",
+                scores: {
+                    "语文": 0,
+                    "数学": 0,
+                    "英语": 0,
+                    "道德与法治": 0,
+                    "历史": 0,
+                    "物理": 0,
+                    "化学": 0,
+                    "生物": 0,
+                    "地理": 0,
+                    "体育": 0
+                }
+            }
+        ];
+
+        // 当前验证码
+        let currentCaptcha = "3A7B";
+
+        // 生成验证码
+        function generateCaptcha() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let captcha = "";
+            for (let i = 0; i < 4; i++) {
+                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = captcha;
+            document.getElementById("captchaImg").textContent = captcha;
+        }
+
+        // 查询成绩
+        function queryScore() {
+            const name = document.getElementById("name").value.trim();
+            const examId = document.getElementById("examId").value.trim();
+            const captcha = document.getElementById("captcha").value.trim().toUpperCase();
+            const errorMsg = document.getElementById("errorMsg");
+            const resultDiv = document.getElementById("result");
+
+            // 验证输入
+            if (!name || !examId || !captcha) {
+                errorMsg.textContent = "请输入完整的信息！";
+                errorMsg.style.display = "block";
+                resultDiv.style.display = "none";
+                return;
+            }
+
+            if (captcha !== currentCaptcha) {
+                errorMsg.textContent = "验证码错误，请重新输入！";
+                errorMsg.style.display = "block";
+                resultDiv.style.display = "none";
+                generateCaptcha();
+                return;
+            }
+
+            // 查找学生
+            const student = students.find(s => 
+                s.name === name && s.examId === examId
+            );
+
+            if (!student) {
+                errorMsg.textContent = "未找到该考生的成绩信息，请核对姓名和准考证号！";
+                errorMsg.style.display = "block";
+                resultDiv.style.display = "none";
+                return;
+            }
+
+            // 显示结果
+            errorMsg.style.display = "none";
+            document.getElementById("studentInfo").innerHTML = `
+                <p><strong>姓名：</strong>${student.name}</p>
+                <p><strong>准考证号：</strong>${student.examId}</p>
+            `;
+
+            const scoreTable = document.getElementById("scoreTable");
+            scoreTable.innerHTML = "";
+            let total = 0;
+
+            for (const [subject, score] of Object.entries(student.scores)) {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${subject}</td>
+                    <td>${score}</td>
+                `;
+                scoreTable.appendChild(row);
+                total += score;
+            }
+
+            document.getElementById("totalScore").textContent = total;
+            resultDiv.style.display = "block";
+        }
+
+        // 初始化
+        window.onload = function() {
+            generateCaptcha();
+        };
+    </script>
+</body>
+</html>
